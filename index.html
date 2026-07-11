@@ -1,0 +1,1090 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard de Custos | Projeto Hackathon</title>
+  <script async src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #f5f9fc;
+      --panel: #ffffff;
+      --panel-soft: #edf7f8;
+      --blue-50: #eaf6ff;
+      --blue-200: #a9d9f5;
+      --blue-700: #155a8a;
+      --blue-900: #092f4c;
+      --green-100: #dcf5e9;
+      --green-500: #28a879;
+      --green-800: #0b5f4a;
+      --ink: #102a3a;
+      --muted: #648092;
+      --line: #d8e8ef;
+      --shadow: 0 18px 38px rgba(16, 42, 58, .10);
+      --shadow-soft: 0 10px 24px rgba(16, 42, 58, .07);
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, #f8fcff 0%, var(--bg) 44%, #eef8f6 100%);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    .shell {
+      width: min(1440px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 28px 0 42px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .eyebrow {
+      color: var(--green-800);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--blue-900);
+      font-size: clamp(28px, 4vw, 52px);
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(15px, 1.6vw, 19px);
+      line-height: 1.45;
+      max-width: 850px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .import-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 48px;
+      padding: 0 18px;
+      border: 0;
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, var(--blue-900), var(--green-800));
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: var(--shadow-soft);
+      white-space: nowrap;
+    }
+
+    .import-btn::before {
+      content: "+";
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.18);
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .import-btn:hover { transform: translateY(-1px); }
+
+    #fileInput {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .status-pill {
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.72);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(220px, 1.2fr);
+      gap: 12px;
+      margin: 18px 0 18px;
+    }
+
+    .control {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.86);
+      box-shadow: 0 8px 22px rgba(16,42,58,.05);
+    }
+
+    .control label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+    }
+
+    select, input[type="range"] {
+      width: 100%;
+      border: 1px solid #cfe2eb;
+      border-radius: var(--radius);
+      background: #fff;
+      color: var(--blue-900);
+      min-height: 44px;
+      padding: 0 12px;
+      outline: none;
+      font-weight: 800;
+    }
+
+    input[type="range"] {
+      accent-color: var(--green-800);
+      padding: 0;
+    }
+
+    .range-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .range-value {
+      color: var(--blue-900);
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      gap: 14px;
+      margin: 20px 0;
+    }
+
+    .card {
+      border: 1px solid rgba(216,232,239,.88);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.94);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .kpi {
+      min-height: 150px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    .kpi-title {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .kpi-value {
+      color: var(--blue-900);
+      font-size: clamp(28px, 3.8vw, 46px);
+      line-height: 1;
+      font-weight: 950;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .kpi-note {
+      color: var(--green-800);
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.35fr .95fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .panel {
+      padding: 20px;
+      min-height: 390px;
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      margin: 0;
+      color: var(--blue-900);
+      font-size: clamp(20px, 2.2vw, 30px);
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+
+    .panel-note {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .chart {
+      width: 100%;
+      height: 310px;
+      display: block;
+    }
+
+    .donut-wrap {
+      display: grid;
+      grid-template-columns: minmax(220px, .95fr) minmax(220px, 1fr);
+      gap: 18px;
+      align-items: center;
+      min-height: 300px;
+    }
+
+    .legend {
+      display: grid;
+      gap: 10px;
+    }
+
+    .legend-row {
+      display: grid;
+      grid-template-columns: 14px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 750;
+    }
+
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+    }
+
+    .table-panel {
+      margin-top: 16px;
+      padding: 20px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      margin-top: 14px;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+    }
+
+    th, td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    th {
+      background: var(--blue-50);
+      color: var(--blue-900);
+      font-size: 12px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .insights {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .insight {
+      padding: 18px;
+      background: linear-gradient(180deg, #ffffff 0%, #f3fbfb 100%);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 9px 20px rgba(16,42,58,.06);
+    }
+
+    .insight strong {
+      display: block;
+      color: var(--blue-900);
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    .insight span {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+      font-weight: 650;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      max-width: min(420px, calc(100vw - 40px));
+      padding: 14px 16px;
+      background: var(--blue-900);
+      color: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      font-weight: 750;
+      transform: translateY(90px);
+      opacity: 0;
+      transition: .24s ease;
+      z-index: 5;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    @media (max-width: 1080px) {
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .actions { justify-content: flex-start; }
+      .filters, .grid { grid-template-columns: 1fr; }
+      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 680px) {
+      .shell { width: min(100% - 24px, 1440px); padding-top: 18px; }
+      .kpis, .insights, .donut-wrap { grid-template-columns: 1fr; }
+      .panel { min-height: 340px; padding: 16px; }
+      .chart { height: 280px; }
+      .actions { width: 100%; }
+      .import-btn, .status-pill { width: 100%; }
+      .kpi { min-height: 132px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="topbar">
+      <div class="brand">
+        <div class="eyebrow" id="datasetLabel">Base analisada: Tabela Custos Projeto Hackathon</div>
+        <h1>Dashboard executivo de custos</h1>
+        <p class="subtitle" id="summaryText">Comparativo financeiro entre hidrogênio, chumbo ácido e íon lítio, com OPEX, CAPEX, TCO projetado e insights automáticos.</p>
+      </div>
+      <div class="actions">
+        <label class="import-btn" for="fileInput">Importar nova base</label>
+        <input id="fileInput" type="file" accept=".csv,.xlsx,.xls">
+        <span class="status-pill" id="statusText">50 linhas processadas</span>
+      </div>
+    </section>
+
+    <section class="filters" aria-label="Filtros">
+      <div class="control">
+        <label for="techFilter">Tecnologia</label>
+        <select id="techFilter"></select>
+      </div>
+      <div class="control">
+        <label for="viewFilter">Visão</label>
+        <select id="viewFilter">
+          <option value="tco">TCO projetado</option>
+          <option value="opex">OPEX anual</option>
+          <option value="capex">CAPEX estimado</option>
+        </select>
+      </div>
+      <div class="control">
+        <div class="range-head">
+          <label for="horizonFilter">Horizonte</label>
+          <span class="range-value"><span id="horizonValue">5</span> anos</span>
+        </div>
+        <input id="horizonFilter" type="range" min="1" max="12" value="5">
+      </div>
+    </section>
+
+    <section class="kpis" id="kpiGrid"></section>
+
+    <section class="grid">
+      <article class="card panel">
+        <div class="panel-head">
+          <div>
+            <h2 id="barTitle">Comparativo anual</h2>
+            <p class="panel-note" id="barNote">Valores consolidados por tecnologia.</p>
+          </div>
+        </div>
+        <svg class="chart" id="barChart" role="img"></svg>
+      </article>
+
+      <article class="card panel">
+        <div class="panel-head">
+          <div>
+            <h2 id="donutTitle">Composição</h2>
+            <p class="panel-note" id="donutNote">Participação dos principais componentes.</p>
+          </div>
+        </div>
+        <div class="donut-wrap">
+          <canvas class="chart" id="donutChart" width="420" height="300"></canvas>
+          <div class="legend" id="donutLegend"></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="card panel" style="margin-top:16px">
+      <div class="panel-head">
+        <div>
+          <h2 id="lineTitle">Custo total acumulado</h2>
+          <p class="panel-note" id="lineNote">CAPEX inicial somado ao OPEX acumulado no horizonte selecionado.</p>
+        </div>
+      </div>
+      <svg class="chart" id="lineChart" role="img"></svg>
+    </section>
+
+    <section class="card table-panel">
+      <div class="panel-head">
+        <div>
+          <h2>Insights automáticos</h2>
+          <p class="panel-note" id="insightNote">Leitura gerada a partir dos KPIs e das relações financeiras da base.</p>
+        </div>
+      </div>
+      <div class="insights" id="insightGrid"></div>
+    </section>
+
+    <section class="card table-panel">
+      <div class="panel-head">
+        <div>
+          <h2>Resumo comparativo</h2>
+          <p class="panel-note">Tabela dinâmica dos principais indicadores por tecnologia.</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const initialRows = [
+      ["Parâmetros","Valores","Origem das premissas","Opex H2","Valores",null,null,null,null,null,null],
+      ["Tamanho da Frota",50,null,"Hidrogênio",2592000,null,null],
+      ["Horas recuperadas por dia",37.5,null,"Manutenção ",360000],
+      ["Valor da hora produtiva",150,"*","Subtotal OPEX Anual",2952000],
+      ["Aproveitamento operacional",0.77,null,null,null],
+      ["Área liberada","60m²",null,"Opex chumbo ácido","Valores"],
+      ["Valor da locação por m² (Mês)",38,null,"Energia",922743.36],
+      ["Custo do H2/kg",30,"*","Manutenção",350000],
+      ["Custo do kw/h",0.76,null,"Subtotal OPEX Anual",2853649.61],
+      ["Potencia Empilhadeira (Kw)",3,null,null,null,null,null,null,null,null,null],
+      ["Consumo por dia (Kw/h)",55.44,null,"Opex Íon lítio","Valores",null,null,null,null,null,null],
+      ["Vida útil Stacks FC (anos)",12,null,"Energia",768952.8,null,null,null,null,null,null],
+      ["Vida útil Baterias Chumbo ácido (anos)",5,null,"Manutenção",220000,null,null,null,null,null,null],
+      ["Vida útil Baterias Ìon lítio (anos)",8,null,"Subtotal OPEX Anual",2569859.05,null,null,null,null,null,null],
+      ["60m² = 80 pallets",80,null,null,null,null,null,null,null,null,null],
+      ["1 pallet comporta 2 mil por mercadiria",2000,null,"Capex H2 (50 unidades)","Valores",null,null,null,null,null,null],
+      ["Giros de mercadoria por ano",6,null,"Stacks FC",2600000,null,null,null,null,null,null],
+      ["Economia por hora produtiva",1580906.25,null,"Infraestrutura e Sistemas de Carga/Abastecimento",4000000,null,null,null,null,null,null],
+      ["Economia por Área liberada",27360,null,"Engenharia, Adequações Civis e Normativas (NR10/NR13)",500000,null,null,null,null,null,null],
+      ["Valor Disponivel por área liberada",960000,"*","INVESTIMENTO TOTAL ESTIMADO",7100000,null,null,null,null,null,null],
+      ["Economia total",1608266.25,null,null,null,null,null,null,null,null,null],
+      ["payback (anos)",4.414691908133992,null,"Capex Chumbo ácido (150 unidades)","Valores",null,null,null,null,null,null],
+      [null,null,null,"Baterias",1500000,null,null,null,null,null,null],
+      [null,null,null,"Infraestrutura e Sistemas de Carga/Abastecimento",500000,null,null,null,null,null,null],
+      [null,null,null,"Engenharia, Adequações Civis e Normativas (NR10/NR13)",100000,null,null,null,null,null,null],
+      [null,null,null,"INVESTIMENTO TOTAL ESTIMADO",2100000,null,null,null,null,null,null],
+      [null,null,null,null,null,null,null,null,null,null,null],
+      [null,null,null,"Capex Íon lítio (50 unidades)","Valores",null,null,null,null,null,null],
+      [null,null,null,"Baterias",2250000,null,null,null,null,null,null],
+      [null,null,null,"Infraestrutura e Sistemas de Carga/Abastecimento",900000,null,null,null,null,null,null],
+      [null,null,null,"Engenharia, Adequações Civis e Normativas (NR10/NR13)",80000,null,null,null,null,null,null],
+      [null,null,null,"INVESTIMENTO TOTAL ESTIMADO",3230000,null,null,null,null,null,null]
+    ];
+
+    const colors = ["#155a8a", "#28a879", "#0b5f4a", "#a9d9f5", "#092f4c", "#7dd8b5", "#6eaed6"];
+    const state = {
+      name: "Tabela Custos Projeto Hackathon",
+      rows: initialRows,
+      model: null
+    };
+
+    const els = {
+      techFilter: document.getElementById("techFilter"),
+      viewFilter: document.getElementById("viewFilter"),
+      horizonFilter: document.getElementById("horizonFilter"),
+      horizonValue: document.getElementById("horizonValue"),
+      kpiGrid: document.getElementById("kpiGrid"),
+      barChart: document.getElementById("barChart"),
+      donutChart: document.getElementById("donutChart"),
+      donutLegend: document.getElementById("donutLegend"),
+      lineChart: document.getElementById("lineChart"),
+      tableHead: document.getElementById("tableHead"),
+      tableBody: document.getElementById("tableBody"),
+      insightGrid: document.getElementById("insightGrid"),
+      fileInput: document.getElementById("fileInput"),
+      statusText: document.getElementById("statusText"),
+      datasetLabel: document.getElementById("datasetLabel"),
+      summaryText: document.getElementById("summaryText"),
+      barTitle: document.getElementById("barTitle"),
+      barNote: document.getElementById("barNote"),
+      donutTitle: document.getElementById("donutTitle"),
+      donutNote: document.getElementById("donutNote"),
+      lineTitle: document.getElementById("lineTitle"),
+      lineNote: document.getElementById("lineNote"),
+      insightNote: document.getElementById("insightNote"),
+      toast: document.getElementById("toast")
+    };
+
+    function norm(value) {
+      return String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    }
+
+    function asNumber(value) {
+      if (typeof value === "number" && Number.isFinite(value)) return value;
+      if (typeof value !== "string") return null;
+      const cleaned = value.replace(/[^\d,.-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
+      const parsed = Number(cleaned);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    function formatMoney(value) {
+      return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(value || 0);
+    }
+
+    function formatNumber(value, digits = 1) {
+      return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: digits }).format(value || 0);
+    }
+
+    function formatCompact(value) {
+      const abs = Math.abs(value || 0);
+      if (abs >= 1000000) return `R$ ${formatNumber(value / 1000000, 2)} mi`;
+      if (abs >= 1000) return `R$ ${formatNumber(value / 1000, 1)} mil`;
+      return formatMoney(value);
+    }
+
+    function extractFinancialModel(rows) {
+      const parameters = {};
+      const technologies = {};
+      let currentBlock = null;
+      let currentTech = null;
+
+      rows.forEach(row => {
+        const key = row[0];
+        const val = row[1];
+        if (key && val !== null && val !== undefined && norm(key) !== "parametros") {
+          parameters[String(key).trim()] = val;
+        }
+
+        const label = row[3];
+        const amount = asNumber(row[4]);
+        const labelNorm = norm(label);
+        if (!label) return;
+
+        if (labelNorm.startsWith("opex ")) {
+          currentBlock = "opex";
+          currentTech = labelNorm.includes("h2") ? "Hidrogênio" : labelNorm.includes("chumbo") ? "Chumbo ácido" : "Íon lítio";
+          technologies[currentTech] ||= { name: currentTech, opex: { components: {}, total: 0 }, capex: { components: {}, total: 0 } };
+          return;
+        }
+
+        if (labelNorm.includes("capex")) {
+          currentBlock = "capex";
+          currentTech = labelNorm.includes("h2") ? "Hidrogênio" : labelNorm.includes("chumbo") ? "Chumbo ácido" : "Íon lítio";
+          technologies[currentTech] ||= { name: currentTech, opex: { components: {}, total: 0 }, capex: { components: {}, total: 0 } };
+          return;
+        }
+
+        if (currentBlock && currentTech && amount !== null) {
+          const tech = technologies[currentTech];
+          if (labelNorm.includes("subtotal") || labelNorm.includes("investimento total")) {
+            tech[currentBlock].total = amount;
+          } else if (norm(label) !== "valores") {
+            tech[currentBlock].components[String(label).trim()] = amount;
+          }
+        }
+      });
+
+      Object.values(technologies).forEach(tech => {
+        ["opex", "capex"].forEach(kind => {
+          const componentSum = Object.values(tech[kind].components).reduce((a, b) => a + b, 0);
+          const residual = tech[kind].total - componentSum;
+          if (residual > 1) tech[kind].components["Outros / operacional"] = residual;
+        });
+      });
+
+      const names = Object.keys(technologies);
+      const hasFinancialShape = names.length >= 2 && names.some(name => technologies[name].opex.total > 0 || technologies[name].capex.total > 0);
+      if (!hasFinancialShape) return null;
+
+      const economyTotal = asNumber(parameters["Economia total"]) || 0;
+      const payback = asNumber(parameters["payback (anos)"]) || (technologies["Hidrogênio"]?.capex.total / Math.max(economyTotal, 1));
+      return {
+        type: "financial",
+        parameters,
+        technologies: names.map(name => technologies[name]),
+        economyTotal,
+        payback,
+        sourceRows: rows.length
+      };
+    }
+
+    function rowsToObjects(rows) {
+      const headerIndex = rows.findIndex(row => row.filter(v => v !== null && v !== "").length >= 2);
+      if (headerIndex < 0) return [];
+      const headers = rows[headerIndex].map((h, i) => String(h || `Coluna ${i + 1}`).trim());
+      return rows.slice(headerIndex + 1)
+        .filter(row => row.some(v => v !== null && v !== ""))
+        .map(row => Object.fromEntries(headers.map((h, i) => [h, row[i] ?? null])));
+    }
+
+    function buildGenericModel(rows) {
+      const records = rowsToObjects(rows);
+      const headers = Object.keys(records[0] || {});
+      const numeric = headers.filter(h => records.some(r => asNumber(r[h]) !== null));
+      const categorical = headers.filter(h => !numeric.includes(h));
+      const primaryNumber = numeric[0];
+      const primaryCategory = categorical[0] || headers[0];
+      const grouped = new Map();
+      records.forEach(record => {
+        const cat = String(record[primaryCategory] ?? "Não informado");
+        const val = asNumber(record[primaryNumber]) || 0;
+        grouped.set(cat, (grouped.get(cat) || 0) + val);
+      });
+      const groups = [...grouped.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+      return { type: "generic", records, headers, numeric, categorical, primaryNumber, primaryCategory, groups, sourceRows: rows.length };
+    }
+
+    function rebuildModel() {
+      state.model = extractFinancialModel(state.rows) || buildGenericModel(state.rows);
+      setupFilters();
+      render();
+    }
+
+    function setupFilters() {
+      const current = els.techFilter.value;
+      els.techFilter.innerHTML = "";
+      if (state.model.type === "financial") {
+        const opts = ["Todas", ...state.model.technologies.map(t => t.name)];
+        opts.forEach(name => els.techFilter.add(new Option(name, name)));
+        els.techFilter.value = opts.includes(current) ? current : "Todas";
+        els.viewFilter.disabled = false;
+        els.horizonFilter.disabled = false;
+      } else {
+        els.techFilter.add(new Option("Todos os registros", "Todos"));
+        els.viewFilter.disabled = true;
+        els.horizonFilter.disabled = true;
+      }
+    }
+
+    function selectedTechs() {
+      if (state.model.type !== "financial") return [];
+      const selected = els.techFilter.value;
+      return selected === "Todas" ? state.model.technologies : state.model.technologies.filter(t => t.name === selected);
+    }
+
+    function render() {
+      els.horizonValue.textContent = els.horizonFilter.value;
+      els.datasetLabel.textContent = `Base analisada: ${state.name}`;
+      els.statusText.textContent = `${state.model.sourceRows} linhas processadas`;
+      if (state.model.type === "financial") renderFinancial();
+      else renderGeneric();
+    }
+
+    function renderFinancial() {
+      const model = state.model;
+      const techs = selectedTechs();
+      const horizon = Number(els.horizonFilter.value);
+      const selected = els.techFilter.value === "Todas" ? model.technologies[0] : techs[0];
+      const cheapestOpex = [...model.technologies].sort((a, b) => a.opex.total - b.opex.total)[0];
+      const cheapestTco = [...model.technologies].sort((a, b) => (a.capex.total + a.opex.total * horizon) - (b.capex.total + b.opex.total * horizon))[0];
+      const h2 = model.technologies.find(t => t.name === "Hidrogênio") || selected;
+      const fleet = asNumber(model.parameters["Tamanho da Frota"]) || 0;
+      const selectedTco = selected.capex.total + selected.opex.total * horizon;
+
+      els.summaryText.textContent = `Comparativo financeiro de ${model.technologies.length} tecnologias para frota de ${formatNumber(fleet, 0)} unidades, com horizonte ajustável e cálculo automático de TCO.`;
+      els.barTitle.textContent = els.viewFilter.value === "capex" ? "CAPEX por tecnologia" : els.viewFilter.value === "opex" ? "OPEX anual por tecnologia" : `TCO em ${horizon} anos`;
+      els.barNote.textContent = "Valores consolidados conforme os blocos financeiros da planilha.";
+      els.donutTitle.textContent = `Composição de ${selected.name}`;
+      els.donutNote.textContent = els.viewFilter.value === "capex" ? "Componentes do investimento inicial." : "Componentes do custo operacional anual.";
+      els.lineTitle.textContent = "Custo total acumulado";
+      els.lineNote.textContent = "CAPEX inicial somado ao OPEX acumulado por ano.";
+      els.insightNote.textContent = "Leitura gerada a partir de OPEX, CAPEX, economia anual e payback informados.";
+
+      const kpis = [
+        { title: "Economia anual", value: formatCompact(model.economyTotal), note: "Ganho total informado pela base" },
+        { title: "Payback H2", value: `${formatNumber(model.payback, 1)} anos`, note: `${formatCompact(h2.capex.total)} de CAPEX estimado` },
+        { title: "Menor OPEX", value: cheapestOpex.name, note: `${formatCompact(cheapestOpex.opex.total)} por ano` },
+        { title: `TCO selecionado`, value: formatCompact(selectedTco), note: `${selected.name} em ${horizon} anos` }
+      ];
+      renderKpis(kpis);
+
+      const metric = els.viewFilter.value;
+      const bars = model.technologies.map(t => ({
+        label: t.name,
+        value: metric === "capex" ? t.capex.total : metric === "opex" ? t.opex.total : t.capex.total + t.opex.total * horizon
+      }));
+      drawBarChart(els.barChart, bars, formatCompact);
+
+      const donutKind = metric === "capex" ? "capex" : "opex";
+      drawDonut(selected[donutKind].components);
+      const series = model.technologies.map(t => ({
+        label: t.name,
+        color: colors[model.technologies.indexOf(t) % colors.length],
+        points: Array.from({ length: horizon + 1 }, (_, year) => ({ x: year, y: t.capex.total + t.opex.total * year }))
+      }));
+      drawLineChart(els.lineChart, series, formatCompact);
+
+      renderFinancialTable(model.technologies, horizon);
+      renderInsights([
+        ["Melhor OPEX", `${cheapestOpex.name} apresenta o menor custo operacional anual da comparação, em ${formatCompact(cheapestOpex.opex.total)}.`],
+        ["Menor TCO no horizonte", `${cheapestTco.name} lidera em custo total para ${horizon} anos, combinando CAPEX e OPEX acumulado.`],
+        ["Alavanca de retorno", `A economia anual de ${formatCompact(model.economyTotal)} sustenta um payback estimado de ${formatNumber(model.payback, 2)} anos para hidrogênio.`]
+      ]);
+    }
+
+    function renderGeneric() {
+      const model = state.model;
+      const total = model.records.reduce((sum, record) => sum + (asNumber(record[model.primaryNumber]) || 0), 0);
+      const avg = total / Math.max(model.records.length, 1);
+      const top = model.groups[0] || ["Não informado", 0];
+
+      els.summaryText.textContent = `Dashboard automático para ${model.records.length} registros, com agrupamento por ${model.primaryCategory || "categoria"} e métrica ${model.primaryNumber || "numérica"}.`;
+      els.barTitle.textContent = `Top categorias por ${model.primaryNumber || "valor"}`;
+      els.barNote.textContent = `Agrupamento automático por ${model.primaryCategory || "primeira coluna"}.`;
+      els.donutTitle.textContent = "Distribuição";
+      els.donutNote.textContent = "Participação das maiores categorias.";
+      els.lineTitle.textContent = "Evolução por registro";
+      els.lineNote.textContent = "Sequência dos valores numéricos detectados.";
+      els.insightNote.textContent = "Leitura gerada pela detecção automática das colunas.";
+
+      renderKpis([
+        { title: "Registros", value: formatNumber(model.records.length, 0), note: `${model.headers.length} colunas detectadas` },
+        { title: `Total de ${model.primaryNumber || "valor"}`, value: formatCompact(total), note: "Soma da métrica principal" },
+        { title: "Média", value: formatCompact(avg), note: "Média por registro" },
+        { title: "Maior categoria", value: top[0], note: formatCompact(top[1]) }
+      ]);
+
+      drawBarChart(els.barChart, model.groups.map(([label, value]) => ({ label, value })), formatCompact);
+      drawDonut(Object.fromEntries(model.groups));
+      drawLineChart(els.lineChart, [{
+        label: model.primaryNumber || "Valor",
+        color: colors[0],
+        points: model.records.map((record, index) => ({ x: index + 1, y: asNumber(record[model.primaryNumber]) || 0 }))
+      }], formatCompact);
+      renderGenericTable(model);
+      renderInsights([
+        ["Colunas detectadas", `Foram identificadas ${model.numeric.length} colunas numéricas e ${model.categorical.length} dimensões categóricas.`],
+        ["Concentração", `${top[0]} concentra o maior valor agregado, com ${formatCompact(top[1])}.`],
+        ["Base atualizada", "Os KPIs e gráficos foram recalculados automaticamente a partir do arquivo importado."]
+      ]);
+    }
+
+    function renderKpis(items) {
+      els.kpiGrid.innerHTML = items.map(item => `
+        <article class="card kpi">
+          <div class="kpi-title">${escapeHtml(item.title)}</div>
+          <div class="kpi-value">${escapeHtml(item.value)}</div>
+          <div class="kpi-note">${escapeHtml(item.note)}</div>
+        </article>
+      `).join("");
+    }
+
+    function drawBarChart(svg, items, formatter) {
+      const width = svg.clientWidth || 900;
+      const height = svg.clientHeight || 310;
+      const pad = { top: 22, right: 22, bottom: 62, left: 72 };
+      const max = Math.max(...items.map(d => d.value), 1);
+      const plotW = width - pad.left - pad.right;
+      const plotH = height - pad.top - pad.bottom;
+      const step = plotW / Math.max(items.length, 1);
+      const barW = Math.min(82, step * .56);
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.innerHTML = `
+        <line x1="${pad.left}" y1="${pad.top + plotH}" x2="${width - pad.right}" y2="${pad.top + plotH}" stroke="#d8e8ef" stroke-width="1"/>
+        ${[0,.25,.5,.75,1].map(t => {
+          const y = pad.top + plotH - plotH * t;
+          return `<line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="#edf4f7" stroke-width="1"/>
+                  <text x="${pad.left - 10}" y="${y + 4}" text-anchor="end" fill="#648092" font-size="12" font-weight="700">${formatter(max * t)}</text>`;
+        }).join("")}
+        ${items.map((d, i) => {
+          const h = plotH * (d.value / max);
+          const x = pad.left + step * i + (step - barW) / 2;
+          const y = pad.top + plotH - h;
+          return `<rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="8" fill="${colors[i % colors.length]}"/>
+                  <text x="${x + barW / 2}" y="${Math.max(y - 8, 14)}" text-anchor="middle" fill="#092f4c" font-size="13" font-weight="900">${formatter(d.value)}</text>
+                  <text x="${x + barW / 2}" y="${height - 28}" text-anchor="middle" fill="#102a3a" font-size="13" font-weight="800">${escapeSvg(shortLabel(d.label, 16))}</text>`;
+        }).join("")}
+      `;
+    }
+
+    function drawLineChart(svg, series, formatter) {
+      const width = svg.clientWidth || 900;
+      const height = svg.clientHeight || 310;
+      const pad = { top: 24, right: 30, bottom: 54, left: 76 };
+      const allPoints = series.flatMap(s => s.points);
+      const maxY = Math.max(...allPoints.map(p => p.y), 1);
+      const maxX = Math.max(...allPoints.map(p => p.x), 1);
+      const plotW = width - pad.left - pad.right;
+      const plotH = height - pad.top - pad.bottom;
+      const scaleX = x => pad.left + (x / maxX) * plotW;
+      const scaleY = y => pad.top + plotH - (y / maxY) * plotH;
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.innerHTML = `
+        ${[0,.25,.5,.75,1].map(t => {
+          const y = pad.top + plotH - plotH * t;
+          return `<line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="#edf4f7" stroke-width="1"/>
+                  <text x="${pad.left - 10}" y="${y + 4}" text-anchor="end" fill="#648092" font-size="12" font-weight="700">${formatter(maxY * t)}</text>`;
+        }).join("")}
+        <line x1="${pad.left}" y1="${pad.top + plotH}" x2="${width - pad.right}" y2="${pad.top + plotH}" stroke="#d8e8ef"/>
+        ${series.map(s => {
+          const path = s.points.map((p, i) => `${i ? "L" : "M"} ${scaleX(p.x)} ${scaleY(p.y)}`).join(" ");
+          return `<path d="${path}" fill="none" stroke="${s.color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                  ${s.points.map(p => `<circle cx="${scaleX(p.x)}" cy="${scaleY(p.y)}" r="4" fill="#fff" stroke="${s.color}" stroke-width="3"/>`).join("")}`;
+        }).join("")}
+        ${series.map((s, i) => `<g transform="translate(${pad.left + i * 168}, ${height - 26})">
+          <rect width="12" height="12" rx="3" fill="${s.color}"></rect>
+          <text x="18" y="11" fill="#102a3a" font-size="13" font-weight="800">${escapeSvg(shortLabel(s.label, 18))}</text>
+        </g>`).join("")}
+      `;
+    }
+
+    function drawDonut(componentMap) {
+      const canvas = els.donutChart;
+      const ctx = canvas.getContext("2d");
+      const dpr = window.devicePixelRatio || 1;
+      const cssW = canvas.clientWidth || 420;
+      const cssH = canvas.clientHeight || 300;
+      canvas.width = cssW * dpr;
+      canvas.height = cssH * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, cssW, cssH);
+
+      const entries = Object.entries(componentMap).filter(([, v]) => v > 0);
+      const total = entries.reduce((sum, [, v]) => sum + v, 0) || 1;
+      const cx = cssW / 2;
+      const cy = cssH / 2;
+      const radius = Math.min(cssW, cssH) * .36;
+      let start = -Math.PI / 2;
+      entries.forEach(([label, value], i) => {
+        const angle = (value / total) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, radius, start, start + angle);
+        ctx.closePath();
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.fill();
+        start += angle;
+      });
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius * .58, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = "#092f4c";
+      ctx.font = "900 24px Inter, system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("100%", cx, cy - 8);
+      ctx.fillStyle = "#648092";
+      ctx.font = "800 13px Inter, system-ui, sans-serif";
+      ctx.fillText("total", cx, cy + 18);
+
+      els.donutLegend.innerHTML = entries.map(([label, value], i) => `
+        <div class="legend-row">
+          <span class="swatch" style="background:${colors[i % colors.length]}"></span>
+          <span>${escapeHtml(shortLabel(label, 34))}</span>
+          <span>${formatCompact(value)}</span>
+        </div>
+      `).join("");
+    }
+
+    function renderFinancialTable(techs, horizon) {
+      els.tableHead.innerHTML = `<tr><th>Tecnologia</th><th>OPEX anual</th><th>CAPEX</th><th>TCO ${horizon} anos</th><th>OPEX / unidade</th></tr>`;
+      els.tableBody.innerHTML = techs.map(t => {
+        const tco = t.capex.total + t.opex.total * horizon;
+        const fleet = asNumber(state.model.parameters["Tamanho da Frota"]) || 1;
+        return `<tr>
+          <td><strong>${escapeHtml(t.name)}</strong></td>
+          <td>${formatMoney(t.opex.total)}</td>
+          <td>${formatMoney(t.capex.total)}</td>
+          <td>${formatMoney(tco)}</td>
+          <td>${formatMoney(t.opex.total / fleet)}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    function renderGenericTable(model) {
+      const headers = model.headers.slice(0, 8);
+      els.tableHead.innerHTML = `<tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join("")}</tr>`;
+      els.tableBody.innerHTML = model.records.slice(0, 12).map(record =>
+        `<tr>${headers.map(h => `<td>${escapeHtml(record[h] ?? "")}</td>`).join("")}</tr>`
+      ).join("");
+    }
+
+    function renderInsights(items) {
+      els.insightGrid.innerHTML = items.map(([title, body]) => `
+        <article class="insight">
+          <strong>${escapeHtml(title)}</strong>
+          <span>${escapeHtml(body)}</span>
+        </article>
+      `).join("");
+    }
+
+    function shortLabel(label, max) {
+      const text = String(label ?? "");
+      return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[ch]));
+    }
+
+    function escapeSvg(value) {
+      return escapeHtml(value);
+    }
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let cell = "";
+      let quoted = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        const next = text[i + 1];
+        if (ch === '"' && quoted && next === '"') {
+          cell += '"';
+          i++;
+        } else if (ch === '"') {
+          quoted = !quoted;
+        } else if (ch === "," && !quoted) {
+          row.push(castCell(cell));
+          cell = "";
+        } else if ((ch === "\n" || ch === "\r") && !quoted) {
+          if (ch === "\r" && next === "\n") i++;
+          row.push(castCell(cell));
+          if (row.some(v => v !== null && v !== "")) rows.push(row);
+          row = [];
+          cell = "";
+        } else {
+          cell += ch;
+        }
+      }
+      row.push(castCell(cell));
+      if (row.some(v => v !== null && v !== "")) rows.push(row);
+      return rows;
+    }
+
+    function castCell(value) {
+      const trimmed = String(value ?? "").trim();
+      if (!trimmed) return null;
+      const num = asNumber(trimmed);
+      return num !== null && /^[-\d.,R$\s%]+$/.test(trimmed) ? num : trimmed;
+    }
+
+    async function handleFile(file) {
+      const ext = file.name.split(".").pop().toLowerCase();
+      try {
+        if (ext === "csv") {
+          const text = await file.text();
+          state.rows = parseCsv(text);
+        } else {
+          if (!window.XLSX) throw new Error("Biblioteca de Excel indisponível. Abra este arquivo com internet ativa ou importe CSV.");
+          const buffer = await file.arrayBuffer();
+          const workbook = XLSX.read(buffer, { type: "array" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          state.rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null });
+        }
+        state.name = file.name.replace(/\.[^.]+$/, "");
+        rebuildModel();
+        showToast("Base importada e dashboard recalculado.");
+      } catch (error) {
+        showToast(error.message || "Não foi possível importar a base.");
+      }
+    }
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => els.toast.classList.remove("show"), 3600);
+    }
+
+    els.techFilter.addEventListener("change", render);
+    els.viewFilter.addEventListener("change", render);
+    els.horizonFilter.addEventListener("input", render);
+    els.fileInput.addEventListener("change", event => {
+      const file = event.target.files[0];
+      if (file) handleFile(file);
+      event.target.value = "";
+    });
+    window.addEventListener("resize", () => render());
+
+    rebuildModel();
+  </script>
+</body>
+</html>
